@@ -7,6 +7,7 @@ import "hardhat/console.sol";
 contract CastSpellPortal {
     uint totalSpells;
     uint private seed;
+    uint winnerCount;
 
     event NewSpellCast(address indexed from, uint timestamp, string message);
     event PrizeWinner(address indexed from, uint prizeAmount);
@@ -51,6 +52,10 @@ contract CastSpellPortal {
         return spellsCast;
     }
 
+    function getWinnerCount() public view returns (uint) {
+        return winnerCount;
+    }
+
     // Track the address that last casted a spell
     mapping(address => uint) public lastSpellCastAt;
 
@@ -84,15 +89,14 @@ contract CastSpellPortal {
             require(prizeAmount <= address(this).balance, "Trying to withdraw more money than contract has!");
             (bool success,) = (msg.sender).call{value: prizeAmount}("");
             require(success, "Failed to withdraw money from contract.");
+            winnerCount += 1;
             emit PrizeWinner(msg.sender, prizeAmount);
         }
-        bytes memory tempEmptyStringTest = bytes(_msg);
-        if (tempEmptyStringTest.length == 0) {
-            // emptyStringTest is an empty string
-            setSpell(output);
-        } else {
-            // emptyStringTest is not an empty string
+
+        if (bytes(_msg).length != 0) {
             setSpell(_msg);
+        } else {
+            setSpell(output);
         }
 
         string memory finalSpellName = getSpellName();
