@@ -9,13 +9,14 @@ contract CastSpellPortal {
     uint private seed;
     uint winnerCount;
 
-    event NewSpellCast(address indexed from, uint timestamp, string message);
+    event NewSpellCast(address indexed from, uint timestamp, string message, bool isWinner);
     event PrizeWinner(address indexed from, uint prizeAmount);
 
     struct Spell {
         address spellCaster; // address of user casting the spell
         string message; // message from the spell caster
         uint timestamp; // time when the user cast a spell
+        bool isWinner; // is this person a winner
     }
 
     Spell[] spellsCast;
@@ -66,6 +67,7 @@ contract CastSpellPortal {
     function castSpell(address input, string memory keyPrefix, string[] memory sourceArray, string memory _msg) public {
         uint256 rand = random(string(abi.encodePacked(keyPrefix, input)));
         string memory output = sourceArray[rand % sourceArray.length];
+        bool isWinner = false;
 
         // Cooldown to reduce spammers
         require(lastSpellCastAt[msg.sender] + 60 seconds < block.timestamp, "Wait 1m");
@@ -90,9 +92,10 @@ contract CastSpellPortal {
             (bool success,) = (msg.sender).call{value: prizeAmount}("");
             require(success, "Failed to withdraw money from contract.");
             winnerCount += 1;
+            isWinner = true;
             emit PrizeWinner(msg.sender, prizeAmount);
         }
-
+        
         if (bytes(_msg).length != 0) {
             setSpell(_msg);
         } else {
@@ -104,10 +107,10 @@ contract CastSpellPortal {
         console.log("%s cast a spell %s!", msg.sender, finalSpellName);
 
         // Storing spell data
-        spellsCast.push(Spell(msg.sender, finalSpellName, block.timestamp));
+        spellsCast.push(Spell(msg.sender, finalSpellName, block.timestamp, isWinner));
 
         // emits event out
-        emit NewSpellCast(msg.sender, block.timestamp, finalSpellName);
+        emit NewSpellCast(msg.sender, block.timestamp, finalSpellName, isWinner);
     }
 
     function getTotalSpells() view public returns (uint) {
